@@ -7,3 +7,6 @@
 
 ## 生命周期
 1. 如何组合redis\mysql多个初始化操作为一个lifespan?
+
+## SQLAlchemy
+1. 数据库异步引擎在io时会让出cpu去执行，这样会很容易让连接池耗尽吗？
