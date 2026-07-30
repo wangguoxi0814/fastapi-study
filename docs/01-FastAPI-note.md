@@ -4,6 +4,7 @@
 ### 服务启动
 ```shell
     pip install uvicorn
+    cd .../fastapi-study/basic_study
     uvicorn main:app --reload
 ```
 - main: 模块名
