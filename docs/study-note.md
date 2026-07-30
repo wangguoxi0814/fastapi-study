@@ -32,7 +32,7 @@
     ):
         return f'第{page_index + 1}页的{page_size}条数据已找到'
   ```
-  - Query提供对查询参数的默认值设置和限制条件
+  - Query提供对查询参数的默认值设置和限制条件, 但非必需
   - URL中无需声明参数
 #### 请求体
 - 适用：put/post
@@ -51,6 +51,7 @@
   - 参数为一个复杂对象，需要继承pydantic的BaseModel
   - 可以通过pydantic的Field为字段设置默认值，校验等
   - 只有pydantic模型可以作为请求体，SQLAlchemy ORM模型不支持
+  - 一个接口可以有多个pydantic模型作为请求体，每个模型作为JSON中的一个field嵌套传入
 
 #### 响应
 fastapi支持多种请求参数，默认是JSON。fastapi会自动将python的dict、列表、pydantic模型,经由jsonable_encoder转化为JSON,并包装为
@@ -92,6 +93,40 @@ JSONResponse返回。
   - 代码: [depends.py](../depends.py)
   - 依赖项：一个函数，返回dict用于传给Depends
   - 声明依赖项：目标方法参数的类型注解声明为Depends
+- 场景：
+  - 数据库会话对象依赖项
+  - 通用分页参数依赖项
+
+### FastAPI多参数解析
+```python
+async def page_info(
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=10, le=50, description="每页条数"),
+):
+    return {
+        "page": page,
+        "page_size": page_size
+    }
+
+# 6. 依赖项
+async def create_session():
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise  # 重新抛出异常，让 FastAPI 正常处理
+        finally:
+            await session.close()
+
+async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), db: AsyncSession = Depends(create_session)):
+```
+在上面的代码中：
+- 请求体是: `book_dto`,只有pydantic的模型可以作为请求体
+- 请求参数是: `page_info`, `page_info()`函数有2个参数，均会被解析为请求参数
+- db依赖项: 依赖的`create_session()`没有入参，因此不会被解析为请求参数
+
 
 ## 第二章 SQLAlchemy集成
 ### SQLAlchemy集成
@@ -104,6 +139,35 @@ JSONResponse返回。
   - 在router中依赖异步会话，通过`AsyncSession`对象执行SQL
 - 问题：
   - 数据库异步引擎在io时会让出cpu去执行，这样会很容易让连接池耗尽吗？
+
+### 增删改查
+#### 增
+- 示例：[sql_alchemy_init.py:insert_books](../sql_alchemy_init.py)
+- 关键点:
+  - 直接通过`AsyncSession`对象的`add_all()`操作模型列表
+  - 手动`flush()`
+
+#### 查
+- 示例：[sql_alchemy_init.py:search_book](../sql_alchemy_init.py)
+- 关键点:
+  - `select().where()`封装查询语句，由`AsyncSession.execute()`执行
+  - 执行后的结果，再通过`ScalarResult.scalars()`转为模型对象
+- 按主键查询
+  - `AsyncSession.get(DelarativeMode, primary_key)`: 按主键查询，快速获取详情信息
+  - `AsyncSession.query(DelarativeMode).filter(DelarativeMode.id == primary_key)`: 按主键查询，返回查询结果对象
+- 条件查询
+  - `==`,`!=`,`>`,`>=`,`<`,`<=`,`like`,`in_`,`not_in_`
+  - `&`, `|`,`~`,逻辑运算符优先级高于`==`,`!=`,`>`等，因此在连接多个条件时，需要使用括号进行括号运算
+  - `like`模糊查询通配符：`%`匹配任意字符，`_`匹配任意一个字符
+- 聚合查询
+  - `func.count()`,`func.sum()`,`func.avg()`,`func.max()`,`func.min()`
+  - 示例: [sql_alchemy_init.py:book_statistics](../sql_alchemy_init.py)
+- 分页查询
+  - 关键参数：`offset`,`limit`, 和mysql的limit offset语法一致
+  - `offset`计算：(page - 1) * page_size
+  - 示例：[sql_alchemy_init.py:search_book](../sql_alchemy_init.py)
+
+ 
 
 ## lifespan
 - lifespan：替代 deprecated 的 on_event
