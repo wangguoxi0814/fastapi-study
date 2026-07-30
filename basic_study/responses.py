@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 
-from basic_study.main import app
+from main import app
 
 
 # 自定义响应格式

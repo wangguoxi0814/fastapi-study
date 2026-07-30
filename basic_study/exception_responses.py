@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from basic_study.main import app
+from main import app
 
 @app.get("/product/{product_id}")
 def product_detail(product_id: int):
