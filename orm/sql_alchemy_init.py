@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 router = APIRouter()
-from sqlalchemy import DateTime, func, select, String, text, Float
+from sqlalchemy import DateTime, func, select, String, text, Float, delete
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -178,3 +178,17 @@ async def insert_books(db: AsyncSession = Depends(create_session)):
     ]
     db.add_all(books)
     return {"message": "插入成功", "count": len(books)}
+
+@router.delete('/book/delete_orm/{book_id}')
+async def delete_orm(book_id: int, db: AsyncSession = Depends(create_session)):
+    book = await db.get(Book, book_id)
+    if book:
+        await db.delete(book)
+        return {"message": "删除成功"}
+    else:
+        return {"message": "删除失败"}
+
+@router.delete('/book/delete/{book_id}')
+async def delete_by(book_id: int, db: AsyncSession = Depends(create_session)):
+    await db.execute(delete(Book).where(Book.id == book_id))
+    return {"message": "删除成功"}
