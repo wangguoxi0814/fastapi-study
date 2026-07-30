@@ -180,13 +180,17 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 #### 删
 - 示例：[sql_alchemy_init.py:delete_orm & delete_by](../sql_alchemy_init.py)
 - 删除分为两种方式：
-  - ORM思维：通过`AsyncSession.delete()`删除，在执行删除前，必须先查询出对象，再删除对象，视角是对象
+  - ORM思维：通过`AsyncSession.delete()`删除，在执行删除前，必须先查询出对象，再删除对象,如果不先查，执行删除会报错，视角是对象
   - SQL思维：通过`select().where()`封装查询语句，再通过`AsyncSession.execute()`执行，视角是SQL本身
   > ORM思维更方便处理级联删除，如果存在级联关系，查询出对象时，对象里已经包含了级联对象，Alchmemy底层会级联删除.
   > 而SQL思维只关注当前数据，不会级联删除，会出现数据不一致情况 
 
 #### 改
-
+- 示例：[sql_alchemy_init.py:update_book](../sql_alchemy_init.py)
+- 查询出来，直接操作ORM对象即可，在提交事务时自动更新到数据库
+- 原理：**脏标记追踪**
+  - 修改的对象标记为dirty
+  - 提交事务时，检查所有dirty对象，生成update语句更新
 
 #### 查
 - 示例：[sql_alchemy_init.py:search_book](../sql_alchemy_init.py)
@@ -214,4 +218,4 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 - lifespan：替代 deprecated 的 on_event
 - @asynccontextmanager
 
-## 
+## ORM的脏标记追踪

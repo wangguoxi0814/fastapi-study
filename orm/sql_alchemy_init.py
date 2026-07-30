@@ -192,3 +192,26 @@ async def delete_orm(book_id: int, db: AsyncSession = Depends(create_session)):
 async def delete_by(book_id: int, db: AsyncSession = Depends(create_session)):
     await db.execute(delete(Book).where(Book.id == book_id))
     return {"message": "删除成功"}
+
+class BookUpdate(BaseModel):
+    id: int
+    book_name: Optional[str] = None
+    author: Optional[str] = None
+    price: Optional[float] = None
+    publisher: Optional[str] = None
+
+@router.put('/book/update')
+async def update_book(book_update: BookUpdate, db: AsyncSession = Depends(create_session)):
+    book = await db.get(Book, book_update.id)
+    if book:
+        if book_update.book_name:
+            book.book_name = book_update.book_name
+        if book_update.author:
+            book.author = book_update.author
+        if book_update.price:
+            book.price = book_update.price
+        if book_update.publisher:
+            book.publisher = book_update.publisher
+        return {"messages": "修改成功"}
+    else:
+        return {"messages": "修改失败"}
