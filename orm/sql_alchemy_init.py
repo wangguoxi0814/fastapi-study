@@ -177,5 +177,4 @@ async def insert_books(db: AsyncSession = Depends(create_session)):
         Book(book_name='聊斋志异', author='蒲松龄', price=39.9, publisher='人民文学出版社'),
     ]
     db.add_all(books)
-    await db.flush()
     return {"message": "插入成功", "count": len(books)}
