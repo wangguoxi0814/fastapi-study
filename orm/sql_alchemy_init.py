@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from unittest import result
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -118,8 +118,18 @@ class BookDTO(BaseModel):
     create_date: Optional[datetime] = None
     update_date: Optional[datetime] = None
 
+async def page_info(
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=10, le=50, description="每页条数"),
+):
+    return {
+        "page": page,
+        "page_size": page_size
+    }
+
+
 @router.post('/book/search')
-async def search_book(book_dto: BookDTO, db: AsyncSession = Depends(create_session)):
+async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), db: AsyncSession = Depends(create_session)):
     query = select(Book)
     if book_dto.id is not None:
         query = query.where(Book.id == book_dto.id)
@@ -131,7 +141,9 @@ async def search_book(book_dto: BookDTO, db: AsyncSession = Depends(create_sessi
         query = query.where(Book.publisher.like(f'%{book_dto.publisher}%'))
     if book_dto.create_date:
         query = query.where(Book.create_date >= book_dto.create_date)
-    result = await db.execute(query)
+    page_size = page_info.get('page_size', 10)
+    offset = (page_info.get('page', 1) - 1) * page_size
+    result = await db.execute(query.offset(offset).limit(page_size))
     return result.scalars().all()
 
 @router.get('/book/statistics')
