@@ -97,7 +97,7 @@ JSONResponse返回。
   - 数据库会话对象依赖项
   - 通用分页参数依赖项
 #### 数据库依赖项是如何自动提交事务原理解析
-- 数据库注入代码示例: [sql_alchemy_init.py](../sql_alchemy_init.py)
+- 数据库注入代码示例: [sql_alchemy_init.py](../orm/sql_alchemy_init.py)
 - 注入会话时，`Depends`的函数是一个生成器函数，FastAPI在解析依赖时，执行逻辑大概如下：
   ```python
         # FastAPI 内部大致逻辑
@@ -160,7 +160,7 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 ## 第二章 SQLAlchemy集成
 ### SQLAlchemy集成
 - 安装：`pip install "sqlalchemy[asyncio]" aiomysql`
-- 代码：[sql_alchemy_init.py](../sql_alchemy_init.py)
+- 代码：[sql_alchemy_init.py](../orm/sql_alchemy_init.py)
   - 创建异步数据库引擎
   - 创建数据模型（继承`DeclarativeBase`类）
   - 在FastAPI的`lifescan`中建库、建表(只有当表不存在时才会创建)
@@ -171,14 +171,14 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 
 ### 增删改查
 #### 增
-- 示例：[sql_alchemy_init.py:insert_books](../sql_alchemy_init.py)
+- 示例：[sql_alchemy_init.py:insert_books](../orm/sql_alchemy_init.py)
 - 使用:
   - 批量添加：`AsyncSession.add_all()`
   - 添加单个：`AsyncSession.add()`
   - 提交事务
 
 #### 删
-- 示例：[sql_alchemy_init.py:delete_orm & delete_by](../sql_alchemy_init.py)
+- 示例：[sql_alchemy_init.py:delete_orm & delete_by](../orm/sql_alchemy_init.py)
 - 删除分为两种方式：
   - ORM思维：通过`AsyncSession.delete()`删除，在执行删除前，必须先查询出对象，再删除对象,如果不先查，执行删除会报错，视角是对象
   - SQL思维：通过`select().where()`封装查询语句，再通过`AsyncSession.execute()`执行，视角是SQL本身
@@ -186,14 +186,14 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
   > 而SQL思维只关注当前数据，不会级联删除，会出现数据不一致情况 
 
 #### 改
-- 示例：[sql_alchemy_init.py:update_book](../sql_alchemy_init.py)
+- 示例：[sql_alchemy_init.py:update_book](../orm/sql_alchemy_init.py)
 - 查询出来，直接操作ORM对象即可，在提交事务时自动更新到数据库
 - 原理：**脏标记追踪**
   - 修改的对象标记为dirty
   - 提交事务时，检查所有dirty对象，生成update语句更新
 
 #### 查
-- 示例：[sql_alchemy_init.py:search_book](../sql_alchemy_init.py)
+- 示例：[sql_alchemy_init.py:search_book](../orm/sql_alchemy_init.py)
 - 关键点:
   - `select().where()`封装查询语句，由`AsyncSession.execute()`执行
   - 执行后的结果，再通过`ScalarResult.scalars()`转为模型对象
@@ -206,16 +206,20 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
   - `like`模糊查询通配符：`%`匹配任意字符，`_`匹配任意一个字符
 - 聚合查询
   - `func.count()`,`func.sum()`,`func.avg()`,`func.max()`,`func.min()`
-  - 示例: [sql_alchemy_init.py:book_statistics](../sql_alchemy_init.py)
+  - 示例: [sql_alchemy_init.py:book_statistics](../orm/sql_alchemy_init.py)
 - 分页查询
   - 关键参数：`offset`,`limit`, 和mysql的limit offset语法一致
   - `offset`计算：(page - 1) * page_size
-  - 示例：[sql_alchemy_init.py:search_book](../sql_alchemy_init.py)
+  - 示例：[sql_alchemy_init.py:search_book](../orm/sql_alchemy_init.py)
 
  
 
-## lifespan
-- lifespan：替代 deprecated 的 on_event
-- @asynccontextmanager
-
-## ORM的脏标记追踪
+## lifespan生命周期函数
+- 示例: [sql_alchemy_init.py:lifespan](../orm/sql_alchemy_init.py)
+- 原理: 
+  - 异步上下文管理器，通过`FastAPI(lifespan=lifespan)`注册后，在服务启动时会执行`__aenter__()`,服务停止时执行`__aexit__()`
+- 老版生命周期函数（已废弃）: 
+  - `@app.on_event("startup")` 启动时执行
+  - `@app.on_event("shutdown")` 停止时执行
+- 一个FastAPI实例只可以注册一个lifespan，lifespan函数参数是`FastAPI实例`
+- 如果需要组合多个生命周期逻辑，可用`AsyncExitStack`组合
