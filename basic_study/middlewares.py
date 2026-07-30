@@ -1,5 +1,4 @@
-from fastapi import middleware
-from main import app
+from basic_study.main import app
 
 # 中间件
 # 作用：统一拦截请求，可以做日志记录、权限校验等

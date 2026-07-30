@@ -6,6 +6,7 @@
     pip install uvicorn
     uvicorn main:app --reload
 ```
+- main: 模块名
 - app: FastAPI实例名
 - --reload: 热加载
 - 访问：`http://127.0.0.1:8000`
@@ -13,7 +14,7 @@
 
 ### 接口声明
 #### 路径参数接口
-- 适用：get/delete请求
+- 适用：get\post\put\delete请求
 - 示例：
     ```python
     @app.get('/book/{id}')
@@ -22,7 +23,7 @@
     ```
     - Path类型注解可用辅助参数校验。...表示必需，还提供max_length、min_length等等
 #### 查询参数接口
-- 适用：get请求
+- 适用：get\post\put\delete请求
 - 示例:
   ```python
     @app.get('/books/list')
@@ -54,32 +55,32 @@
   - 一个接口可以有多个pydantic模型作为请求体，每个模型作为JSON中的一个field嵌套传入
 
 #### 响应
-fastapi支持多种请求参数，默认是JSON。fastapi会自动将python的dict、列表、pydantic模型,经由jsonable_encoder转化为JSON,并包装为
+FastAPI支持多种请求参数，默认是JSON。FastAPI会自动将python的dict、列表、pydantic模型,经由`jsonable_encoder`转化为JSON,并包装为
 JSONResponse返回。
 - 支持的响应类型：
   - **JSONResponse**：返回JSON
   - **HTMLResponse**：返回HTML
-  - PlainTeHTMLResponsextReponse：返回纯文本
+  - PlainTextReponse：返回纯文本
   - **FileReponse**：返回文件下载
   - StreamingResponse：生成器函数返回数据,适合大文件
   - RedirectResponse: 重定向
 - 响应类型指定：
-  - [代码responses.py](../responses.py)
+  - 示例:[responses.py](../basic_study/responses.py)
   - 路由装饰器的`reponse_class`指定
   - 直接返回对应的类
 - 自定义响应格式
   - 可以自定义pydantic模型，作为返回的数据结构
   - 使用：
-  - [代码responses.py](../responses.py)
+  - 示例:[responses.py](../basic_study/responses.py)
   - 装饰器的`response_model`指定，自带校验
 - 异常响应(exception_reponses.py)
-  - [代码exception_responses.py](../exception_responses.py)
+  - [代码exception_responses.py](../basic_study/exception_responses.py)
   - `HTTPException(status_code=xxx, detail=xxx)`
 
 ### 中间件
 - 作用：统一拦截处理逻辑
 - 场景：日志记录、权限校验
-- 代码：[middlewares.py](../middlewares.py)
+- 代码：[middlewares.py](../basic_study/middlewares.py)
 - 逻辑：
   - 洋葱模型，按声明逆序执行
   - 要定义为async/await。middleware的call_next返回的是协程对象，没有await不会执行，影响middleware的打印顺序，middleware函数必须声明为async\await
@@ -90,14 +91,14 @@ JSONResponse返回。
 ### 依赖注入
 - 作用: 抽取公共参数逻辑,按需使用
 - 使用：
-  - 代码: [depends.py](../depends.py)
+  - 代码: [depends.py](../basic_study/depends.py)
   - 依赖项：一个函数，返回dict用于传给Depends
   - 声明依赖项：目标方法参数的类型注解声明为Depends
 - 场景：
   - 数据库会话对象依赖项
   - 通用分页参数依赖项
 #### 数据库依赖项是如何自动提交事务原理解析
-- 数据库注入代码示例: [sql_alchemy_init.py](../orm/sql_alchemy_init.py)
+- 数据库注入代码示例: [sql_alchemy_init.py](../basic_study/orm/sql_alchemy_init.py)
 - 注入会话时，`Depends`的函数是一个生成器函数，FastAPI在解析依赖时，执行逻辑大概如下：
   ```python
         # FastAPI 内部大致逻辑
@@ -157,7 +158,7 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 - db依赖项: 依赖的`create_session()`没有入参，因此不会被解析为请求参数
 
 ## lifespan生命周期函数
-- 示例: [sql_alchemy_init.py:lifespan](../orm/sql_alchemy_init.py)
+- 示例: [sql_alchemy_init.py:lifespan](../basic_study/orm/sql_alchemy_init.py)
 - 原理: 
   - 异步上下文管理器，通过`FastAPI(lifespan=lifespan)`注册后，在服务启动时会执行`__aenter__()`,服务停止时执行`__aexit__()`
 - 老版生命周期函数（已废弃）: 

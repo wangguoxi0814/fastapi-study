@@ -1,7 +1,7 @@
 # 依赖注入
 from fastapi import Query, Depends
 
-from main import app
+from basic_study.main import app
 
 # 公共参数
 async def page_info(

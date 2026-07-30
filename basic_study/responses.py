@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 
-from main import app
+from basic_study.main import app
 
 
 # 自定义响应格式
@@ -29,5 +29,5 @@ def role_html(role_id: int):
 
 @app.get("/role/img/{role_id}")
 def role_img(role_id: int):
-    path = './files/liudehua.jpg'
+    path = 'files/liudehua.jpg'
     return FileResponse(path)
