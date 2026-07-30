@@ -83,7 +83,7 @@ JSONResponse返回。
 - 场景：日志记录、权限校验
 - 代码：[middlewares.py](../basic_study/middlewares.py)
 - 逻辑：
-  - 洋葱模型，按声明逆序执行
+  - 洋葱模型，before按middleware书写书逆序执行，after则相反
   - 要定义为async/await。middleware的call_next返回的是协程对象，没有await不会执行，影响middleware的打印顺序，middleware函数必须声明为async\await
   - 默认拦截所有的路由，静态资源请求
   - 如果需要增加显示order参数编排中间件执行顺序，需要自定义封装
@@ -93,7 +93,7 @@ JSONResponse返回。
 - 作用: 抽取公共参数逻辑,按需使用
 - 使用：
   - 代码: [depends.py](../basic_study/depends.py)
-  - 依赖项：一个函数，返回dict用于传给Depends
+  - 依赖项：一个函数，返回dict用于传给Depends。普通函数和异步函数都可以，FastAPI底层会区分。
   - 声明依赖项：目标方法参数的类型注解声明为Depends
 - 场景：
   - 数据库会话对象依赖项
@@ -156,7 +156,7 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 在上面的代码中：
 - 请求体是: `book_dto`,只有pydantic的模型可以作为请求体
 - 请求参数是: `page_info`, `page_info()`函数有2个参数，均会被解析为请求参数
-- db依赖项: 依赖的`create_session()`没有入参，因此不会被解析为请求参数
+- db依赖项: 依赖项`create_session()`没有入参，因此不会被解析为请求参数
 
 ## lifespan生命周期函数
 - 示例: [sql_alchemy_init.py:lifespan](../basic_study/orm/sql_alchemy_init.py)
