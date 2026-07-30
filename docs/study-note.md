@@ -96,6 +96,35 @@ JSONResponse返回。
 - 场景：
   - 数据库会话对象依赖项
   - 通用分页参数依赖项
+#### 数据库依赖项是如何自动提交事务原理解析
+- 数据库注入代码示例: [sql_alchemy_init.py](../sql_alchemy_init.py)
+- 注入会话时，`Depends`的函数是一个生成器函数，FastAPI在解析依赖时，执行逻辑大概如下：
+  ```python
+        # FastAPI 内部大致逻辑
+        async def resolve_dependency(dependency_func):
+        # 1. 创建生成器
+        gen = dependency_func()           # create_session() 返回生成器对象
+
+        # 2. 执行到 yield，获取 session
+        session = await gen.__anext__()   # 执行 yield 之前的代码，暂停在 yield 处
+
+        return session, gen  # 把 session 交给路由函数，gen 保存起来
+  ```
+- FastAPI在解析完依赖后，会执行请求，在执行完请求后，会执行执行器的`__anext__()`方法,大致逻辑如下：
+  ```python
+        # FastAPI 内部大致逻辑
+        async def handle_request():
+        session, gen = await resolve_dependency(create_session)
+
+        try:
+            result = await route_function(session)  # 执行路由函数
+            return result
+        except Exception:
+            await gen.athrow(Exception)  # 触发 except 分支（rollback）
+        finally:
+            await gen.__anext__()        # 执行 yield 之后的代码（commit + close）
+  ```
+最后执行生成器的下一步，`create_session()`上下文继续执行，从而自动提交事务
 
 ### FastAPI多参数解析
 ```python
