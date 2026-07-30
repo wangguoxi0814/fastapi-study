@@ -50,6 +50,7 @@
   ```
   - 参数为一个复杂对象，需要继承pydantic的BaseModel
   - 可以通过pydantic的Field为字段设置默认值，校验等
+  - 只有pydantic模型可以作为请求体，SQLAlchemy ORM模型不支持
 
 #### 响应
 fastapi支持多种请求参数，默认是JSON。fastapi会自动将python的dict、列表、pydantic模型,经由jsonable_encoder转化为JSON,并包装为
@@ -98,7 +99,7 @@ JSONResponse返回。
 - 代码：[sql_alchemy_init.py](../sql_alchemy_init.py)
   - 创建异步数据库引擎
   - 创建数据模型（继承`DeclarativeBase`类）
-  - 在FastAPI的`lifescan`中建库、建表
+  - 在FastAPI的`lifescan`中建库、建表(只有当表不存在时才会创建)
   - 基于异步引擎创建异步会话(`AsyncSession`)
   - 在router中依赖异步会话，通过`AsyncSession`对象执行SQL
 - 问题：
