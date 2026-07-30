@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
+from unittest import result
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 router = APIRouter()
-from sqlalchemy import DateTime, func, select, String, text
+from sqlalchemy import DateTime, func, select, String, text, Float
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -37,6 +38,7 @@ class Book(Base):
     id: Mapped[int] = mapped_column(primary_key=True, comment='书籍ID')
     book_name: Mapped[str] = mapped_column(String(255), comment='书籍名称')
     author: Mapped[str] = mapped_column(String(255), comment='作者')
+    price: Mapped[float] = mapped_column(Float, comment='价格')
     publisher: Mapped[str] = mapped_column(String(255), comment='出版社')
 
 
@@ -111,6 +113,7 @@ class BookDTO(BaseModel):
     id_list: Optional[list[int]] = None
     book_name: Optional[str] = None
     author: Optional[str] = None
+    price: Optional[float] = None
     publisher: Optional[str] = None
     create_date: Optional[datetime] = None
     update_date: Optional[datetime] = None
@@ -131,16 +134,35 @@ async def search_book(book_dto: BookDTO, db: AsyncSession = Depends(create_sessi
     result = await db.execute(query)
     return result.scalars().all()
 
+@router.get('/book/statistics')
+async def book_statistics(type: str, db: AsyncSession = Depends(create_session)):
+    result = None
+    if type == 'count':
+        result = await db.execute(select(func.count(Book.id)))
+    elif type == 'sum':
+        result = await db.execute(select(func.sum(Book.price)))
+    elif type == 'avg':
+        result = await db.execute(select(func.avg(Book.price)))
+    elif type == 'max':
+        result = await db.execute(select(func.max(Book.price)))
+    elif type == 'min':
+        result = await db.execute(select(func.min(Book.price)))
+
+    if result:
+        return result.scalar()
+    else:
+        return {"message": "统计类型错误"}
+
 
 @router.post('/book/insert')
 async def insert_books(db: AsyncSession = Depends(create_session)):
     """插入5条测试数据"""
     books = [
-        Book(book_name='西游记', author='吴承恩', publisher='人民文学出版社'),
-        Book(book_name='红楼梦', author='曹雪芹', publisher='人民文学出版社'),
-        Book(book_name='水浒传', author='施耐庵', publisher='人民文学出版社'),
-        Book(book_name='三国演义', author='罗贯中', publisher='人民文学出版社'),
-        Book(book_name='聊斋志异', author='蒲松龄', publisher='人民文学出版社'),
+        Book(book_name='西游记', author='吴承恩', price=59.9, publisher='人民文学出版社'),
+        Book(book_name='红楼梦', author='曹雪芹', price=69.9, publisher='人民文学出版社'),
+        Book(book_name='水浒传', author='施耐庵', price=49.9, publisher='人民文学出版社'),
+        Book(book_name='三国演义', author='罗贯中', price=55.0, publisher='人民文学出版社'),
+        Book(book_name='聊斋志异', author='蒲松龄', price=39.9, publisher='人民文学出版社'),
     ]
     db.add_all(books)
     await db.flush()
