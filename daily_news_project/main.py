@@ -3,6 +3,8 @@ from routers import news
 from routers import users
 from fastapi.middleware.cors import CORSMiddleware
 
+from utils.exception_handlers import register_error_handlers
+
 app = FastAPI()
 
 app.add_middleware(
@@ -12,6 +14,9 @@ app.add_middleware(
     allow_methods=["*"],     # 允许的请求方法
     allow_headers=["*"],     # 允许的请求头
 )
+
+# 注册全局异常处理器
+register_error_handlers(app)
 
 
 @app.get("/")

@@ -22,6 +22,7 @@ async def get_db():
             yield db_session
             await db_session.commit()
         except Exception as e:
+            print('get_db e================', e)
             await db_session.rollback()
             raise e
         finally:
