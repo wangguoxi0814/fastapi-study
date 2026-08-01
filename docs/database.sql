@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS `user_token` (
   `token` VARCHAR(255) NOT NULL COMMENT '令牌值',
   `expires_at` TIMESTAMP NOT NULL COMMENT '过期时间',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`),
   UNIQUE INDEX `token_UNIQUE` (`token` ASC),
   INDEX `fk_user_token_user_idx` (`user_id` ASC),
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS `user_token` (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户令牌表';
+
 
 -- 新闻分类表
 CREATE TABLE IF NOT EXISTS `news_category` (
