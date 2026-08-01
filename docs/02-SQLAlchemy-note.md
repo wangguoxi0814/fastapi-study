@@ -13,6 +13,21 @@
 - 问题：
   - 数据库异步引擎在io时会让出cpu去执行，这样会很容易让连接池耗尽吗？
 
+### SQLAlchemy模型
+- 继承`DeclarativeBase`的类
+- 表名定义: `__tablename__`
+- 索引定义
+  ```python
+  __table_args__ = (
+        Index('fk_news_category_idx', 'category_id'), 
+        Index('idx_publish_time', 'publish_time')  
+    )
+  ```
+  - 参数分别为：索引名称，索引字段
+- 字段定义
+  - `Mapped[T]`作为模型字段类型注解，告诉SQLAlchemy这是数据库字段，否则会报错。如果字段不需要映射到数据库，使用`ClassVar[]` 
+  - 如果允许字段为空，使用`Mapped[Optional[str]]`，这样在操作ORM对象时，可以赋值为None，但数据库字段是否允许为`None`，由`mapped_column()`的`nullable`的bool值决定
+  - 外键字段由`mapped_column(ForeignKey(f'{table_name}.{key}'))`指定
 ### 增删改查
 #### 增
 - 示例：[sql_alchemy_init.py:insert_books](../basic_study/orm/sql_alchemy_init.py)
@@ -31,7 +46,9 @@
 
 #### 改
 - 示例：[sql_alchemy_init.py:update_book](../basic_study/orm/sql_alchemy_init.py)
-- 查询出来，直接操作ORM对象即可，在提交事务时自动更新到数据库
+- 使用：
+  - 查询出来，直接操作ORM对象即可，在提交事务时自动更新到数据库
+  - `update(ORM_MODEL).where().values(field1=value1, field2=value2)` 按条件修改指定字段，由`db_session.execute()`执行。`values`的字段名如果不存在于ORM对象中，会报错
 - 原理：**脏标记追踪**
   - 修改的对象标记为dirty
   - 提交事务时，检查所有dirty对象，生成update语句更新
@@ -39,8 +56,14 @@
 #### 查
 - 示例：[sql_alchemy_init.py:search_book](../basic_study/orm/sql_alchemy_init.py)
 - 关键点:
-  - `select().where()`封装查询语句，由`AsyncSession.execute()`执行
-  - 执行后的结果，再通过`ScalarResult.scalars()`转为模型对象
+  - `select().where()`封装查询语句，由`AsyncSession.execute()`执行,返回`Result`对象
+  - 执行后的结果，再通过`Result.scalars()`转为模型对象，返回`ScalarResult`
+  - `Result`获取结果的方法:
+     - `Result.scalars().all()`: 获取所有结果,没有返回None
+     - `Result.scalars().first()`: 获取第一个结果，没有返回None
+     - `Result.scalars().one()`: 获取唯一结果，0条或多条数据会报错
+     - `Result.scalar_one()`: 获取唯一结果，0条或多条数据会报错
+     - `Result.scalar_one_or_none()`: 获取唯一结果，如果没有结果，返回None，如果由多条结果，异常
 - 按主键查询
   - `AsyncSession.get(DelarativeMode, primary_key)`: 按主键查询，快速获取详情信息
   - `AsyncSession.query(DelarativeMode).filter(DelarativeMode.id == primary_key)`: 按主键查询，返回查询结果对象
