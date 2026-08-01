@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from setuptools.command import alias
 from sqlalchemy import DateTime, String, Integer, Index, Text, ForeignKey, Enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
