@@ -4,11 +4,8 @@ from typing import Optional, ClassVar
 from sqlalchemy import DateTime, String, Integer, Index, Text, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from models.base import Base
 
-class Base(DeclarativeBase):
-
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(), comment='创建时间')
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(), comment='更新时间')
 
 class Category(Base):
     __tablename__ = 'news_category'
