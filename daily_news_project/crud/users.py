@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.users import User, UserToken
@@ -47,3 +47,15 @@ async def authenticate_user(db: AsyncSession, username: str, password: str):
         return None
 
     return user
+
+# 根据 Token 查询用户：联合查询
+async def get_user_by_token(db: AsyncSession, token: str):
+    query = (
+        select(User)
+        .select_from(User)
+        .join(UserToken, User.id == UserToken.user_id)
+        .where(UserToken.token == token)
+        .where(UserToken.expires_at > datetime.now())
+    )
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
