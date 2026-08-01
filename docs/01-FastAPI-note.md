@@ -168,3 +168,27 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 - 一个FastAPI实例只可以注册一个lifespan，lifespan函数参数是`FastAPI实例`
 - 如果需要组合多个生命周期逻辑，可用`AsyncExitStack`组合
 
+## 第二章 FastAPI进阶
+### 模块化路由
+- 示例:
+- `APIRouter`声明路由, FastAPI示例注册路由
+- 作用：按模块划分路由，避免混乱
+
+### 跨域处理
+- 跨域是浏览器安全机制，只允许同源的请求，前端和后端的协议、域名、端口任一不同，就会触发跨域
+- 处理：使用内置的`CORSMiddleware`, 再通过`FastAPI`的`add_middleware`添加
+- 示例：
+  ```python
+        app.add_middleware(
+          CORSMiddleware,
+          allow_origins=["*"],     # 允许的源，开发阶段允许所有源，生产环境需要指定源
+          allow_credentials=True,  # 允许携带cookie
+          allow_methods=["*"],     # 允许的请求方法
+          allow_headers=["*"],     # 允许的请求头
+        )
+  ```
+- 其他处理跨域方案：
+  - Nginx反向代理,配置跨域响应头
+    1. 浏览器检查页面Origin和请求目标Origin是否一致，不一致则判定为跨域请求
+    2. 跨域请求(如果是GET请求，会直接发送请求本身。如果是POST、PUT、DELETE请求，会先发送预检请求(OPTIONS))会发送到Nginx，Nginx将请求给转发给服务器
+    3. 服务器响应给Nginx,Nginx给响应头添加跨域响应头，返回给浏览器
