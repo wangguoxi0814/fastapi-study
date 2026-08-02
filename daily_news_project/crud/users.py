@@ -73,3 +73,17 @@ async def update_user_info(db: AsyncSession, username: str, user_data: UserUpdat
         raise HTTPException(status_code=400, detail="用户不存在,修改个人信息失败！")
     user = await get_user_by_username(db, username)
     return user
+
+# 修改密码: 验证旧密码 → 新密码加密 → 修改密码
+async def change_password(db: AsyncSession, user: User, old_password: str, new_password: str):
+    if not security.verify(old_password, user.password):
+        return False
+
+    hashed_new_pwd = security.get_hash(new_password)
+    user.password = hashed_new_pwd
+    # 更新: 由SQLAlchemy真正接管这个 User 对象，确保可以 commit
+    # 不共享Session，或者这个user之前手动commit，对象就会处于游离态，需要add重新添加到Session中
+    # 在当前代码架构中，不需要
+    # db.add(user)
+    print('db.identity_map: ', db.identity_map.keys())
+    return True
