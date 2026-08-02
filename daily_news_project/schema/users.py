@@ -49,3 +49,12 @@ class OAuthResponse(BaseModel):
         populate_by_name=True,  # 允许通过字段名取值
         from_attributes=True,  # 允许从 ORM 对象属性中取值
     )
+
+
+# 更新用户信息的模型类
+class UserUpdateRequest(BaseModel):
+    nickname: str = None
+    avatar: str = None
+    gender: str = None
+    bio: str = None
+    phone: str = None

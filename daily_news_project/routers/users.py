@@ -7,7 +7,7 @@ from config.db_conf import get_db
 from crud import users
 from models.users import User
 
-from schema.users import UserRequest, UserAuthResponse, UserInfoResponse, OAuthResponse
+from schema.users import UserRequest, UserAuthResponse, UserInfoResponse, OAuthResponse, UserUpdateRequest
 from utils import security
 from utils.auth import get_current_user
 from utils.response import success_response
@@ -66,3 +66,8 @@ async def login(user_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
 @router.get("/info")
 async def get_user_info(user: User = Depends(get_current_user)):
     return success_response(message="获取用户信息成功", data=UserInfoResponse.model_validate(user))
+
+@router.put('/update')
+async def update_user_info(user_data: UserUpdateRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    user = await users.update_user_info(db, user.username, user_data)
+    return success_response(message="更新用户信息成功", data=UserInfoResponse.model_validate(user))
