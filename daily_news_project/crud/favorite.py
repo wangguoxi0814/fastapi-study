@@ -8,7 +8,7 @@ from models.news import News
 async def is_news_favorite(db: AsyncSession, user_id: int, news_id: int):
     result = await db.execute(
         select(Favorite)
-        .where(Favorite.user_id == user_id, Favorite.news_id, news_id)
+        .where(Favorite.user_id == user_id, Favorite.news_id == news_id)
     )
     return result.scalar_one_or_none() is not None
 
