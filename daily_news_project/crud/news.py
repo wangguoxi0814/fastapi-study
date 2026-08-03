@@ -27,7 +27,7 @@ async def get_news_detail(db: AsyncSession, news_id: int):
     return stmt.scalar_one_or_none()
 
 async def increase_news_views(db: AsyncSession, news_id: int):
-    update_ =  update(News).where(News.id == news_id).values(views1=News.views + 1)
+    update_ =  update(News).where(News.id == news_id).values(views=News.views + 1)
     stmt = await db.execute(update_)
     return stmt.rowcount
 
