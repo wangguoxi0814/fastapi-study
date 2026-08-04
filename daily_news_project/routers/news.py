@@ -22,7 +22,7 @@ async def get_categories(page_params: dict = Depends(page_params), db: AsyncSess
 async def get_news_list(category_id: int = Query(alias='categoryId', description="分类ID"),
                         page_info: dict = Depends(page_info),
                         db: AsyncSession = Depends(get_db)):
-    news_list = await news.get_news_list(db, category_id, **page_info)
+    news_list = await news.get_news_list(db, category_id=category_id, **page_info)
     total = await news.get_news_count(db, category_id)
     has_more = page_info['offset'] + len(news_list) < total
     return {

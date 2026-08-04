@@ -13,7 +13,8 @@ async def get_categories(db: AsyncSession, *, offset: int = 0, limit: int = 10):
     return stmt.scalars().all()
 
 
-async def get_news_list(db: AsyncSession, category_id: int, offset: int = 0, limit: int = 10):
+@CacheAside(key="news:list:{category_id}:{offset}:{limit}", expire=3600)
+async def get_news_list(db: AsyncSession, *, category_id: int, offset: int = 0, limit: int = 10):
     stmt = await db.execute(
         select(News).where(News.category_id == category_id).offset(offset).limit(limit)
     )
