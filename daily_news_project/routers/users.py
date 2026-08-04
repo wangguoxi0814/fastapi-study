@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from config.db_conf import get_db
+from config.db_conf import get_db, AsyncSessionLocal
 from crud import users
 from models.users import User
 
@@ -82,3 +82,24 @@ async def update_password(
     if not res_change_pwd:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="修改密码失败，请稍后再试")
     return success_response(message="修改密码成功")
+
+
+@router.get('/simulate-pool-exhaustion')
+async def simulate():
+    """
+    模拟连接池耗尽
+
+    :return:
+    """
+    sessions = []
+    try:
+        for i in range(50):  # 超过连接池大小
+            # async with AsyncSessionLocal() as db:  # 会自动关闭session，不会导致连接池耗尽
+            db = AsyncSessionLocal()    #  不会自动关闭，连接池会耗尽
+            # 默认会被垃圾回收，放到集合中引用，避免被垃圾回收
+            sessions.append(db)
+            exist_user = await users.get_user_by_username(db, 'admin')
+            print(f"连接 {i+1} 已获取")
+        return {"msg": "成功"}
+    except Exception as e:
+        return {"error": str(e), "connections_held": len(sessions)}

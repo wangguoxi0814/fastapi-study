@@ -180,7 +180,18 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 ### 模块化路由
 - 示例:
 - `APIRouter`声明路由, FastAPI示例注册路由
+  - `prefix`参数指定url前缀
+  - `tags`参数指定路由标签
 - 作用：按模块划分路由，避免混乱
+
+### 数据库会话生命周期管理
+- 示例: [db_config.py](../daily_news_project/config/db_conf.py)
+  - `yield`返回session,保证业务逻辑处理完毕再执行下文的`commit`和`close`
+  - except捕获异常时`rollback`方法回滚事务
+- 问题：
+  - aio会更容易导致连接池耗尽吗？
+    - 不会。连接池耗尽是指连接池中的连接都被占用，再来一个请求使用连接时需要等待，而只有等待超时时才会出现连接池耗尽的错误.
+    - 连接池耗尽模拟代码: [user.py#simulate()](../daily_news_project/routers/users.py)
 
 ### 跨域处理
 - 跨域是浏览器安全机制，只允许同源的请求，前端和后端的协议、域名、端口任一不同，就会触发跨域
