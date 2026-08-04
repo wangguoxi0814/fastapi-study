@@ -81,13 +81,21 @@ JSONResponse返回。
 ### 中间件
 - 作用：统一拦截处理逻辑
 - 场景：日志记录、权限校验
-- 代码：[middlewares.py](../basic_study/middlewares.py)
-- 逻辑：
-  - 洋葱模型，before按middleware书写书逆序执行，after则相反
-  - 要定义为async/await。middleware的call_next返回的是协程对象，没有await不会执行，影响middleware的打印顺序，middleware函数必须声明为async\await
+- 装饰器类型：1. 装饰器函数中间件 2. 类中间件
+  - 装饰器函数中间件代码：[middlewares.py](../basic_study/middlewares.py)
+  - 装饰器函数中间件时适应单场景
+  - 类中间件要继承 `BaseHTTPMiddleware`实现`dispatch`方法，适合复杂，复用度高的场景
+  - 类中间件代码见：[middlewares.py](../daily_news_project/commons/middlewares.py)
+- 装饰器函数中间件逻辑：
+  - 添加中间件底层是一个stack，所以先添加的middleware在栈底，最后执行。也就是按before按添加逆序执行，after按添加顺序执行。类中间件和函数装饰器中间件混杂时也遵循这个原则
+  - 查看中间件执行链方法：`app.middleware_stack`获取所有的中间件列表，包括`FastAPI`自带中间件,但函数装饰器中间件在链中会显示`BaseHTTPMiddleware`,如果需要更好区分，可以自己遍历重新封装
+，示例代码:[main.py](../daily_news_project/main.py)中的`root()`。需要注意的是，这个stack是懒加载，需要发送请求后才能够获取到执行链，如果只是服务已启动，获取到的是None
+  - 查看用户自定义中间件执行链：`app.user_middleware`,只包含用户自定义中间件执行链,更纯净，且无需发送请求初始化。示例代码:[main.py](../daily_news_project/main.py)中的`root()`
+  - 方法要定义为async/await。middleware的call_next返回的是协程对象，没有await不会执行，影响middleware的打印顺序，middleware函数必须声明为async\await
   - 默认拦截所有的路由，静态资源请求
   - 如果需要增加显示order参数编排中间件执行顺序，需要自定义封装
 - 怎么自定义拦截规则？
+  - 中间件默认拦截所有请求，如果需要自定义，需要自行实现代码判断处理
 
 ### 依赖注入
 - 作用: 抽取公共参数逻辑,按需使用
@@ -102,8 +110,8 @@ JSONResponse返回。
 - 数据库注入代码示例: [sql_alchemy_init.py](../basic_study/orm/sql_alchemy_init.py)
 - 注入会话时，`Depends`的函数是一个生成器函数，FastAPI在解析依赖时，执行逻辑大概如下：
   ```python
-        # FastAPI 内部大致逻辑
-        async def resolve_dependency(dependency_func):
+    # FastAPI 内部大致逻辑
+    async def resolve_dependency(dependency_func):
         # 1. 创建生成器
         gen = dependency_func()           # create_session() 返回生成器对象
 
@@ -115,7 +123,7 @@ JSONResponse返回。
 - FastAPI在解析完依赖后，会执行请求，在执行完请求后，会执行执行器的`__anext__()`方法,大致逻辑如下：
   ```python
         # FastAPI 内部大致逻辑
-        async def handle_request():
+    async def handle_request():
         session, gen = await resolve_dependency(create_session)
 
         try:
@@ -192,3 +200,11 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
     1. 浏览器检查页面Origin和请求目标Origin是否一致，不一致则判定为跨域请求
     2. 跨域请求(如果是GET请求，会直接发送请求本身。如果是POST、PUT、DELETE请求，会先发送预检请求(OPTIONS))会发送到Nginx，Nginx将请求给转发给服务器
     3. 服务器响应给Nginx,Nginx给响应头添加跨域响应头，返回给浏览器
+
+### 全局异常处理
+- 示例：[exception_handlers.py](../daily_news_project/utils/exception_handlers.py)
+- 异常捕获顺序：
+  - 无关注册顺序，只会根据异常的MRO顺序捕获，即便`Exception`注册在最前面，发生其子异常时，也会交由具体的异常处理器处理。
+- 事务影响: 
+  不会对事务找出影响。执行顺序如下：
+  - 在发送异常后，会执行db依赖项的except分支，执行`rollback()`，再会把异常给全局异常处理器，响应异常
