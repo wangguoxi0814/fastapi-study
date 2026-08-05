@@ -1,4 +1,3 @@
-from sqlalchemy import UniqueConstraint
 
 # SQLAlchemy study note
 
@@ -28,6 +27,23 @@ from sqlalchemy import UniqueConstraint
   ```
   - UniqueConstraint参数分别为：字段名，约束名称
   - Index参数分别为：索引名称，索引字段
+  - 修改表结构后扩展：
+    - `__table_args__ = {'extend_existing'=True}}`
+    - ```python
+        class User(Base):
+           __tablename__ = "user"
+           id: Mapped[int] = mapped_column(primary_key=True)
+           username: Mapped[str] = mapped_column(String(50))
+      
+        class UserExtended(Base):
+            __tablename__ = "user"
+            __table_args__ = {"extend_existing": True}
+      
+            id: Mapped[int] = mapped_column(primary_key=True)
+            username: Mapped[str] = mapped_column(String(50))
+            email: Mapped[str] = mapped_column(String(100))      # 新增字段
+            phone: Mapped[str] = mapped_column(String(20))       # 新增字段
+    ```
 
 - 字段定义
   - `Mapped[T]`作为模型字段类型注解，告诉SQLAlchemy这是数据库字段，否则会报错。如果字段不需要映射到数据库，使用`ClassVar[]` 
@@ -37,7 +53,9 @@ from sqlalchemy import UniqueConstraint
       - xxx -> Enum(xxx, xxx) -> enum(xxx, xxx). xxx可以是任意类型，和枚举项类型匹配即可
   - 如果允许字段为空，使用`Mapped[Optional[str]]`，这样在操作ORM对象时，可以赋值为None，但数据库字段是否允许为`None`，由`mapped_column()`的`nullable`的bool值决定
   - 外键字段由`mapped_column(ForeignKey(f'{table_name}.{key}'))`指定
-  - 
+  - 完整字符映射:
+    - `user_name: Mapped[Optional[str]] = mapped_column(String(500), alias='username', comment="用户名", default='默认用户名')`
+      - `alias`: 别名，用于数据库字段映射，如果ORM对象字段和数据库名称不一致，可以通过`alias()`指定别名
 ### 增删改查
 #### 增
 - 示例：[sql_alchemy_init.py:insert_books](../basic_study/orm/sql_alchemy_init.py)
@@ -67,6 +85,7 @@ from sqlalchemy import UniqueConstraint
 - 示例：[sql_alchemy_init.py:search_book](../basic_study/orm/sql_alchemy_init.py)
 - 关键点:
   - `select().where()`封装查询语句，由`AsyncSession.execute()`执行,返回`Result`对象
+    - select(User.creat_at.label('register_time')) 给查询结果集字段重命名
   - 执行后的结果，再通过`Result.scalars()`转为模型对象，返回`ScalarResult`
   - `Result`获取结果的方法:
      - `Result.scalars().all()`: 获取所有结果,没有返回None
@@ -74,6 +93,12 @@ from sqlalchemy import UniqueConstraint
      - `Result.scalars().one()`: 获取唯一结果，0条或多条数据会报错
      - `Result.scalar_one()`: 获取唯一结果，0条或多条数据会报错
      - `Result.scalar_one_or_none()`: 获取唯一结果，如果没有结果，返回None，如果由多条结果，异常
+       - scalar_one_or_none()返回的是第一行第一列结果,结果取决于select()的内容，关系如下：
+         - select(User):返回整个User对象，可以理解为第一行第一列就是整个ORM对象
+         - select(User.id, User.username, User.avatar): 只返回第一行第一列，即User.id
+     - 精简字段查询:
+       - 代码示例：[users.py#get_user_simple](../daily_news_project/crud/users.py)
+       - select(User.id, User.username, User.avatar)配置Result.one_or_none()，返回`Row`对象，可通过`Row`对象直接获取字段
 - 按主键查询
   - `AsyncSession.get(DelarativeMode, primary_key)`: 按主键查询，快速获取详情信息
   - `AsyncSession.query(DelarativeMode).filter(DelarativeMode.id == primary_key)`: 按主键查询，返回查询结果对象
@@ -88,11 +113,24 @@ from sqlalchemy import UniqueConstraint
   - 关键参数：`offset`,`limit`, 和mysql的limit offset语法一致
   - `offset`计算：(page - 1) * page_size
   - 示例：[sql_alchemy_init.py:search_book](../basic_study/orm/sql_alchemy_init.py)
+- 联合查询
+  - 代码示例1: [crud.users.get_user_by_token](../daily_news_project/crud/users.py)
+  - 代码示例2: [crud.favorite.get_favorite_list](../daily_news_project/crud/favorite.py)
+  - 内连接: `join(right_orm_obj, conditoin1 == condition2)`指定需要连接的右表，默认是`inner join`，同时书写连接条件，如果有多个连接条件,通过`and_()`组合
+  - 左右外连接查询：`outerjoin()`或者`join(isouter=True)`,右连接需要自己交换表的顺序，SQLAlchemy并不提供API
+  - 全外连接: `join(isouter=True, isfull=True)`
 
 ### 会话管理
 - 代码示例：[db_conf.py](../daily_news_project/config/db_conf.py)
-- `async_sessionmaker(expired_at_commit=xxx)`中参数`expired_at_commit`:
+- `async_sessionmaker(expire_on_commit=xxx)`中参数`expire_on_commit`:
   - True：commit后，ORM对象所有属性标记为过期，所以ORM对象不可用，但仍在session的identify_map中
     - 如果访问过期ORM对象属性，SQLAlchemy会重新查询数据库，触发同步IO，但当在异步上下文中时触发同步IO，会报：`(sqlalchemy.exc.MissingGreenlet) greenlet_spawn has not been called; can't call await_only() here. Was IO attempted in an unexpected place? `
   - False: commit后，ORM对象可用，在session的identify_map中
 - `await refresh(orm_obj)`：当ORM对象属性过期后，刷新ORM对象
+- 游离态和过期
+  - 游离态：session管理的对象不存在于identify_map中，为游离态,触发条件：
+    - session关闭
+    - session作用于之外
+    - 手动移除对象：`session.expunge(obj)`，
+  - 过期：存在于identify_map中，但属性过期，如果需要使用，SQLAlchemy会重新查询数据库,触发条件：
+    - `expire_on_commit=True`并且对象已经session已commit

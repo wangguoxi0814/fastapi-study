@@ -78,6 +78,18 @@ JSONResponse返回。
   - [代码exception_responses.py](../basic_study/exception_responses.py)
   - `HTTPException(status_code=xxx, detail=xxx)`
 
+### Pydantic建模
+- 继承`BaseModel`, `Field`限定字段
+- `model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True
+    )`解析：
+  - `populate_by_name=True`: 表示即可以通过字段名获取和设置属性值，也可以通过别名获取和设置属性值
+  - `from_attributes=True`: 表示model.model_validate()可以将ORM对象直接转为Pydantic模型，否则只能传入字典
+- `**user_data.model_dump(
+  exclude_none=True,
+  exclude_unset=True
+)`: 将Pydantic模型转为字典，`exclude_none=True`排除None的字段，和`exclude_unset=True`: 排除未设置字段（比如：有默认值但未人为设置的字段）
 ### 中间件
 - 作用：统一拦截处理逻辑
 - 场景：日志记录、权限校验
@@ -106,6 +118,11 @@ JSONResponse返回。
 - 场景：
   - 数据库会话对象依赖项
   - 通用分页参数依赖项
+- 多依赖项执行顺序：从左至右、深度优先、缓存复用。
+  - 从左至右执行:在接口鉴权的依赖项`get_current_user`中依赖了`get_db`，而接口自身也依赖了`get_db`,加载顺序会按路由方法中依赖项顺序从左至右执行
+  - 深度优先:先加载`get_current_user`中的`get_db`
+  - 缓存复用:`get_current_user`中的`get_db`和接口自身依赖的`get_db`会复用同一个session对象，不会重复执行
+
 #### 数据库依赖项会话生命周期管理和事务管理
 ##### 数据库会话生命周期管理
 - 示例: [db_config.py](../daily_news_project/config/db_conf.py)
@@ -216,7 +233,12 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 ### 全局异常处理
 - 示例：[exception_handlers.py](../daily_news_project/utils/exception_handlers.py)
 - 异常捕获顺序：
-  - 无关注册顺序，只会根据异常的MRO顺序捕获，即便`Exception`注册在最前面，发生其子异常时，也会交由具体的异常处理器处理。
+  - 无关注册顺序，只会根据异常类的MRO顺序捕获，即便`Exception`注册在最前面，发生其子异常时，也会交由具体的异常处理器处理。
 - 事务影响: 
   不会对事务找出影响。执行顺序如下：
-  - 在发送异常后，会执行db依赖项的except分支，执行`rollback()`，再会把异常给全局异常处理器，响应异常
+  - 在异常后，会执行db依赖项的except分支，执行`rollback()`，再会把异常给全局异常处理器，响应异常
+
+### FastAPI docs授权问题
+- 存在问题：docs中无法识别请求头Authorization，无法调用鉴权接口
+- 解决方法：集成OAuth2
+- 代码示例：[utils.auth.get_oauth2_current_user](../daily_news_project/utils/auth.py)
