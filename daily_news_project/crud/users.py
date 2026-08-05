@@ -81,9 +81,13 @@ async def change_password(db: AsyncSession, user: User, old_password: str, new_p
 
     hashed_new_pwd = security.get_hash(new_password)
     user.password = hashed_new_pwd
+
     # 更新: 由SQLAlchemy真正接管这个 User 对象，确保可以 commit
     # 不共享Session，或者这个user之前手动commit，对象就会处于游离态，需要add重新添加到Session中
     # 在当前代码架构中，不需要
     # db.add(user)
+    # await db.commit()
+    # await db.refresh(user)
+    # print('user:', user)
     print('db.identity_map: ', db.identity_map.keys())
     return True
