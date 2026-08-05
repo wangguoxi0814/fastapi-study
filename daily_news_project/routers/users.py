@@ -15,6 +15,7 @@ from utils.response import success_response
 
 router = APIRouter(prefix="/api/user", tags=['users'])
 
+
 @router.post('/register')
 async def register(user_data: UserRequest, db: AsyncSession = Depends(get_db)):
     # 查询用户是否存在
@@ -42,6 +43,7 @@ async def register(user_data: UserRequest, db: AsyncSession = Depends(get_db)):
     response_data = UserAuthResponse(token=token, userInfo=UserInfoResponse.model_validate(user))
     return success_response("注册成功", response_data)
 
+
 @router.post('/login')
 async def login(user_data: UserRequest, db: AsyncSession = Depends(get_db)):
     # 登录逻辑：验证用户是否存在 -> 验证密码 -> 生成 Token  → 响应结果
@@ -63,15 +65,19 @@ async def login(user_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     response_data = OAuthResponse(access_token=token, userInfo=UserInfoResponse.model_validate(user))
     return response_data
 
+
 # 查Token查用户 → 封装crud → 功能整合成一个工具函数 → 路由导入使用: 依赖注入
 @router.get("/info")
 async def get_user_info(user: User = Depends(get_current_user)):
     return success_response(message="获取用户信息成功", data=UserInfoResponse.model_validate(user))
 
+
 @router.put('/update')
-async def update_user_info(user_data: UserUpdateRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def update_user_info(user_data: UserUpdateRequest, user: User = Depends(get_current_user),
+                           db: AsyncSession = Depends(get_db)):
     user = await users.update_user_info(db, user.username, user_data)
     return success_response(message="更新用户信息成功", data=UserInfoResponse.model_validate(user))
+
 
 @router.put("/password")
 async def update_password(
@@ -95,11 +101,27 @@ async def simulate():
     try:
         for i in range(50):  # 超过连接池大小
             # async with AsyncSessionLocal() as db:  # 会自动关闭session，不会导致连接池耗尽
-            db = AsyncSessionLocal()    #  不会自动关闭，连接池会耗尽
+            db = AsyncSessionLocal()  # 不会自动关闭，连接池会耗尽
             # 默认会被垃圾回收，放到集合中引用，避免被垃圾回收
             sessions.append(db)
             exist_user = await users.get_user_by_username(db, 'admin')
-            print(f"连接 {i+1} 已获取")
+            print(f"连接 {i + 1} 已获取")
         return {"msg": "成功"}
     except Exception as e:
         return {"error": str(e), "connections_held": len(sessions)}
+
+
+@router.get('/simple_user')
+async def simple_user(username: str, db: AsyncSession = Depends(get_db)):
+    """
+    简单用户信息
+    用于测试精简字段查询
+
+    :return:
+    """
+    simple_result = await users.get_user_simple(db, username)
+    print(f'simple_result type: {type(simple_result)}')
+    print(f'simple.user.id: {simple_result.id}')
+    print(f'simple.user.username: {simple_result.username}')
+    print(f'simple.user.avatar: {simple_result.avatar}')
+    return success_response(message="获取用户简要信息成功", data=UserInfoResponse.model_validate(simple_result))

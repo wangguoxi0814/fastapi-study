@@ -4,15 +4,24 @@ from fastapi import HTTPException
 from sqlalchemy import select, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.users import User, UserToken
+from models.users import User, UserToken, SimpleUser
 from schema.users import UserRequest, UserUpdateRequest
 from utils import security
 
 
 async def get_user_by_username(db: AsyncSession, username: str):
-    stmt = await db.execute(select(User).where(User.username == username))
+    stmt = await db.execute(
+        select(User)
+        .where(User.username == username)
+    )
     return stmt.scalar_one_or_none()
 
+async def get_user_simple(db: AsyncSession, username: str):
+    stmt = await db.execute(
+        select(User.id, User.username, User.avatar)
+        .where(User.username == username)
+    )
+    return stmt.one_or_none()
 
 async def create_user(db: AsyncSession, user_data: UserRequest):
     user = User(**user_data.__dict__)
