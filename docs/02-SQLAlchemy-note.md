@@ -1,3 +1,5 @@
+from sqlalchemy import UniqueConstraint
+
 # SQLAlchemy study note
 
 ## 第一章 SQLAlchemy集成
@@ -13,21 +15,29 @@
 - 问题：
   - 数据库异步引擎在io时会让出cpu去执行，这样会很容易让连接池耗尽吗？
 
-### SQLAlchemy模型
+### SQLAlchemy建模
 - 继承`DeclarativeBase`的类
 - 表名定义: `__tablename__`
-- 索引定义
+- 索引和唯一约束定义
   ```python
   __table_args__ = (
+        UniqueConstraint('user_id', 'news_id', name='user_news_unique'),
         Index('fk_news_category_idx', 'category_id'), 
         Index('idx_publish_time', 'publish_time')  
     )
   ```
-  - 参数分别为：索引名称，索引字段
+  - UniqueConstraint参数分别为：字段名，约束名称
+  - Index参数分别为：索引名称，索引字段
+
 - 字段定义
   - `Mapped[T]`作为模型字段类型注解，告诉SQLAlchemy这是数据库字段，否则会报错。如果字段不需要映射到数据库，使用`ClassVar[]` 
+    - 字段类型对应关系(Python->SQLAlchemy->MySQL)
+      - int -> INTEGER -> int
+      - str -> String() -> varchar()
+      - xxx -> Enum(xxx, xxx) -> enum(xxx, xxx). xxx可以是任意类型，和枚举项类型匹配即可
   - 如果允许字段为空，使用`Mapped[Optional[str]]`，这样在操作ORM对象时，可以赋值为None，但数据库字段是否允许为`None`，由`mapped_column()`的`nullable`的bool值决定
   - 外键字段由`mapped_column(ForeignKey(f'{table_name}.{key}'))`指定
+  - 
 ### 增删改查
 #### 增
 - 示例：[sql_alchemy_init.py:insert_books](../basic_study/orm/sql_alchemy_init.py)
@@ -78,3 +88,11 @@
   - 关键参数：`offset`,`limit`, 和mysql的limit offset语法一致
   - `offset`计算：(page - 1) * page_size
   - 示例：[sql_alchemy_init.py:search_book](../basic_study/orm/sql_alchemy_init.py)
+
+### 会话管理
+- 代码示例：[db_conf.py](../daily_news_project/config/db_conf.py)
+- `async_sessionmaker(expired_at_commit=xxx)`中参数`expired_at_commit`:
+  - True：commit后，ORM对象所有属性标记为过期，所以ORM对象不可用，但仍在session的identify_map中
+    - 如果访问过期ORM对象属性，SQLAlchemy会重新查询数据库，触发同步IO，但当在异步上下文中时触发同步IO，会报：`(sqlalchemy.exc.MissingGreenlet) greenlet_spawn has not been called; can't call await_only() here. Was IO attempted in an unexpected place? `
+  - False: commit后，ORM对象可用，在session的identify_map中
+- `await refresh(orm_obj)`：当ORM对象属性过期后，刷新ORM对象
