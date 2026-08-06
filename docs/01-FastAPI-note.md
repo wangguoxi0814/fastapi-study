@@ -242,3 +242,13 @@ async def search_book(book_dto: BookDTO, page_info: dict = Depends(page_info), d
 - 存在问题：docs中无法识别请求头Authorization，无法调用鉴权接口
 - 解决方法：集成OAuth2
 - 代码示例：[utils.auth.get_oauth2_current_user](../daily_news_project/utils/auth.py)
+
+### 通用缓存实现
+- 代码示例：[config.redis_conf.CacheAside](../daily_news_project/config/redis_conf.py)
+- 协程方法和普通方法兼容：
+  - 在`__call__`中判断`is_async = inspect.iscoroutinefunction(func)`判断是否为协程方法，协程方法和普通方法返回不同装饰器函数
+  - 对应普通方法的装饰器函数中不能用await调用协程方法，需要`asyncio.run()`调用
+
+### JSON序列化
+- `jsonable_encoder()`可将Pydantic模型、ORM模型、Python普通对象转为dict、list、str等可转为JSON的简单类型，再通过`json.dumps()`转为JSON
+- 如果直接将对象交给`jsom.dumps()`会报错，对象中包含很多复杂的原信息，JSON无法描述
