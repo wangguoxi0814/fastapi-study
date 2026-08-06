@@ -43,21 +43,21 @@
 ## 20260803星期一深圳
 - [X] SQLAlchemy设置唯一约束`UniqueConstraint` 
 - [X] 连表查询获取多表字段，并且取别名,返回的是元组列表，元组推导式解构
-- [ ] typing中的List和list区别？以及typing这个包是干嘛的？
-- [ ] Redis使用流程,回顾装饰器原理，用装饰器实现旁路缓存，如果既要能够修饰普通函数，又要能够修饰async函数怎么做？
-- [ ] 怎么判断变量是不是一个类的实例
-- [ ] 回顾闭包
-- [ ] ORM对象无法序列化？通过jsonable_encoder()转化之后，变成了什么?jsonable_encoder支持哪些类型？为什么Java里的类可以直接序列化？
-- [ ] Redis客户端操作时，不同指令之间不要由; 否则会被当作key的一部分
-- [ ] 函数类型入参Callable[..., Any]类型注解
-- [ ] str的format语法，用途见CacheAside中从字段参数中解析key
+- [X] typing中的List和list区别？以及typing这个包是干嘛的？
+- [X] Redis使用流程,回顾装饰器原理，用装饰器实现旁路缓存，如果既要能够修饰普通函数，又要能够修饰async函数怎么做？
+- [X] 怎么判断变量是不是一个类的实例还是简单数据类型
+- [X] 回顾闭包和作用域
+- [X] ORM对象无法序列化？通过jsonable_encoder()转化之后，变成了什么?jsonable_encoder支持哪些类型？为什么Java里的类可以直接序列化？
+- [X] Redis客户端操作时，不同指令之间不要有; 否则会被当作key的一部分
+- [X] 函数类型入参Callable[..., Any]类型注解
+- [X] str的format语法，用途见CacheAside中从字段参数中解析key
 
 ## 20260804星期二深圳
-- [ ] //是干嘛的
-- [ ] Pydantic类的model_validate(item).model_dump(mode="json", by_alias=False)
-- [ ] 回顾MRO
-- [ ] review skill生成文件日志有问题，引用代码的问题未显示代码
-- [ ] Cursor的BugBot怎么使用?
+- [X] //是干嘛的
+- [X] Pydantic类的model_validate(orm_item).model_dump(mode="json", by_alias=False)
+- [X] 回顾MRO
+- [X] conversation review skill生成文件日期似乎不是按照当前时间，增加引用代码的显示
+- [X] Cursor的BugBot怎么使用?
 
 
 ## 20260805星期三深圳
